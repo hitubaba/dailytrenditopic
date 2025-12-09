@@ -1,93 +1,100 @@
-
 #!/usr/bin/env python3
 # generate_index.py
-# Requires: pytrends
-# pip install pytrends
-
-import os
-import sys
+# Simple generator using pytrends. If pytrends fails, it will fallback to a small static list
+# Usage in Actions: python generate_index.py
+import os, sys, html
 from datetime import datetime
-from pytrends.request import TrendReq
-import html
-import json
 
-# Config
-REGION = os.environ.get("TRENDS_REGION", "IN")  # change to 'US' or 'GLOBAL' as needed
-TEMPLATE_PATH = "templates/index_template.html"
-OUTPUT_PATH = "index.html"
-SITEMAP_PATH = "sitemap.xml"
 MAX_ITEMS = int(os.environ.get("MAX_TRENDS", "12"))
+REGION = os.environ.get("TRENDS_REGION", "india")  # use 'india' for pytrends pn
+TEMPLATE = "templates/index_template.html"
+OUTPUT = "index.html"
+SITEMAP = "sitemap.xml"
 
-def fetch_trends(region):
-    pytrends = TrendReq(hl='en-US', tz=330)
+def fetch_trends_pytrends(region):
     try:
-        # top charts / daily search trends
-        # pytrends has trending_searches method (real-time for region)
-        df = pytrends.trending_searches(pn=region.lower())  # e.g., 'india' works best with 'india' but we'll try
-        # if region is 'IN' map to 'india'
+        from pytrends.request import TrendReq
     except Exception as e:
-        # fallback to trending_searches without region
-        df = pytrends.trending_searches(pn='india')
-    terms = df[0].tolist()[:MAX_ITEMS]
-    return terms
+        print("pytrends not installed or import failed:", e)
+        return None
+    try:
+        pytrends = TrendReq(hl='en-US', tz=330)
+        # trending_searches expects values like 'india', 'united_states'
+        df = pytrends.trending_searches(pn=region)
+        terms = df[0].tolist()[:MAX_ITEMS]
+        return terms
+    except Exception as e:
+        print("pytrends fetch error:", e)
+        return None
 
 def build_cards(terms):
     cards = []
-    rank = 1
+    r = 1
     for t in terms:
-        safe_t = html.escape(t)
-        card_html = f"""
+        safe = html.escape(t)
+        q = html.escape(t.replace(' ', '+'))
+        card = f'''
 <div class="card">
-  <div class="rank">#{rank}</div>
-  <div class="title"><a href="https://www.google.com/search?q={html.escape(t.replace(' ', '+'))}" target="_blank" rel="noopener">{safe_t}</a></div>
-  <div class="source">Search on Google · Explore for more</div>
-</div>
-"""
-        cards.append(card_html)
-        rank += 1
+  <div class="rank">#{r}</div>
+  <div class="title"><a href="https://www.google.com/search?q={q}" target="_blank" rel="noopener">{safe}</a></div>
+  <div class="source">Search on Google · Explore</div>
+</div>'''
+        cards.append(card)
+        r += 1
     return "\n".join(cards)
 
 def main():
     now = datetime.utcnow()
-    today_iso = now.strftime("%Y-%m-%d")
-    print("Fetching trends for region:", REGION)
-    try:
-        terms = fetch_trends(REGION)
-    except Exception as e:
-        print("Error fetching trends:", e)
-        terms = ["Trending fetch error — try again later"]
+    today = now.strftime("%Y-%m-%d")
+    terms = fetch_trends_pytrends(REGION)
+    if not terms:
+        print("Using fallback static list.")
+        terms = [
+            "कुंभ राशिफल",
+            "Vande Mataram Parliament",
+            "Akhanda 2 release date",
+            "Fluminense vs Bahia",
+            "76ers vs Lakers",
+            "Shubman Gill",
+            "England cricket",
+            "Manali weather",
+            "Amar Ujala",
+            "Bulls vs Warriors"
+        ][:MAX_ITEMS]
 
-    cards_html = build_cards(terms)
+    cards = build_cards(terms)
 
-    # read template
-    with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
-        template = f.read()
+    if not os.path.exists(TEMPLATE):
+        print("Template missing:", TEMPLATE)
+        sys.exit(1)
 
-    canonical = os.environ.get("CANONICAL_URL", "https://your-username.github.io/your-repo/")
-    out_html = template.replace("{{TREND_CARDS}}", cards_html)
-    out_html = out_html.replace("{{TODAY_DATE}}", today_iso)
-    out_html = out_html.replace("{{REGION}}", REGION)
-    out_html = out_html.replace("{{CANONICAL_URL}}", canonical)
-    out_html = out_html.replace("{{YEAR}}", str(datetime.now().year))
+    with open(TEMPLATE, "r", encoding="utf-8") as f:
+        tpl = f.read()
 
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        f.write(out_html)
-    print("Wrote", OUTPUT_PATH)
+    canonical = os.environ.get("CANONICAL_URL", "https://hitubaba.github.io/dailytrenditopic/")
+    out = tpl.replace("{{TREND_CARDS}}", cards)
+    out = out.replace("{{TODAY_DATE}}", today)
+    out = out.replace("{{REGION}}", REGION)
+    out = out.replace("{{CANONICAL_URL}}", canonical)
+    out = out.replace("{{YEAR}}", str(now.year))
 
-    # sitemap
-    sitemap = f"""<?xml version="1.0" encoding="UTF-8"?>
+    with open(OUTPUT, "w", encoding="utf-8") as f:
+        f.write(out)
+    print("Wrote", OUTPUT)
+
+    sitemap = f'''<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>{canonical}</loc>
-    <lastmod>{today_iso}</lastmod>
+    <lastmod>{today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
 </urlset>
-"""
-    with open(SITEMAP_PATH, "w", encoding="utf-8") as f:
+'''
+    with open(SITEMAP, "w", encoding="utf-8") as f:
         f.write(sitemap)
-    print("Wrote", SITEMAP_PATH)
+    print("Wrote", SITEMAP)
 
 if __name__ == "__main__":
     main()
