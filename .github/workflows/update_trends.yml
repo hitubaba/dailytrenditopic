@@ -29,7 +29,6 @@ jobs:
 
       - name: Ensure templates folder exists
         run: |
-          # If template missing, create a minimal default one so workflow doesn't fail
           if [ ! -f templates/index_template.html ]; then
             echo "Template missing — creating default template to avoid failure."
             mkdir -p templates
@@ -68,6 +67,5 @@ EOF
             echo "No changes to commit"
           else
             git commit -m "Daily: update trending topics — $(date -u +%Y-%m-%d)" || echo "commit failed"
-            # push back to the same branch
             git push origin HEAD:${{ github.ref_name }} || echo "push failed"
           fi
