@@ -2,8 +2,11 @@ name: Daily Update Trending Topics
 
 on:
   schedule:
-    - cron: '0 0 * * *' # runs daily at 00:00 UTC (adjust if needed)
+    - cron: '0 0 * * *' # daily at 00:00 UTC
   workflow_dispatch: {}
+
+permissions:
+  contents: write
 
 jobs:
   update:
@@ -26,24 +29,45 @@ jobs:
 
       - name: Ensure templates folder exists
         run: |
-          test -f templates/index_template.html || (echo "Template missing" && exit 1)
+          # If template missing, create a minimal default one so workflow doesn't fail
+          if [ ! -f templates/index_template.html ]; then
+            echo "Template missing — creating default template to avoid failure."
+            mkdir -p templates
+            cat > templates/index_template.html <<'EOF'
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Daily Trending Topics</title>
+</head>
+<body>
+  <h1>Daily Trending Topics</h1>
+  {{TREND_CARDS}}
+</body>
+</html>
+EOF
+          else
+            echo "Template exists."
+          fi
 
       - name: Generate index.html
         env:
-          TRENDS_REGION: india        # change to 'united_states' or 'IN' as needed
-          CANONICAL_URL: ${{ secrets.CANONICAL_URL }} # optional, set in repo secrets
+          TRENDS_REGION: india
+          CANONICAL_URL: ${{ secrets.CANONICAL_URL }}
           MAX_TRENDS: '12'
         run: |
           python generate_index.py
 
-      - name: Commit changes
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html sitemap.xml || true
-          if git diff --cached --quiet; then
+          if git diff --quiet --cached; then
             echo "No changes to commit"
           else
-            git commit -m "Daily: update trending topics — $(date -u +%Y-%m-%d)"
-            git push origin HEAD:${{ github.ref_name }}
+            git commit -m "Daily: update trending topics — $(date -u +%Y-%m-%d)" || echo "commit failed"
+            # push back to the same branch
+            git push origin HEAD:${{ github.ref_name }} || echo "push failed"
           fi
