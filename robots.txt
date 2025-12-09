@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Sitemap: https://hitubaba.github.io/dailytrenditopic/sitemap.xml
+Host: https://hitubaba.github.io/dailytrenditopic/
