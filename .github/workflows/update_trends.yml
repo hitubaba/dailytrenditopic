@@ -28,24 +28,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytrends
 
-    - name: Ensure templates folder exists
+        - name: Ensure templates folder exists
       run: |
         if [ ! -f templates/index_template.html ]; then
-          echo "Template missing — creating default template."
+          echo "Template missing — creating default template to avoid failure."
           mkdir -p templates
-          cat > templates/index_template.html <<'EOF'
-<!doctype html>
-<html lang="hi">
-<head>
-  <meta charset="utf-8">
-  <title>Daily Trending Topics</title>
-</head>
-<body>
-  <h1>Daily Trending Topics</h1>
-  {{TREND_CARDS}}
-</body>
-</html>
-EOF
+          printf '%s\n' '<!doctype html>' '<html lang="hi">' '<head>' '<meta charset="utf-8">' '<meta name="viewport" content="width=device-width,initial-scale=1">' '<title>Daily Trending Topics</title>' '</head>' '<body>' '<h1>Daily Trending Topics</h1>' '{{TREND_CARDS}}' '</body>' '</html>' > templates/index_template.html
         else
           echo "Template exists."
         fi
