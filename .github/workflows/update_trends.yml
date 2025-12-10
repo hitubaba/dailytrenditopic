@@ -2,7 +2,7 @@ name: Daily Update Trending Topics
 
 on:
   schedule:
-    - cron: '0 0 * * *' # daily at 00:00 UTC
+    - cron: '0 0 * * *'   # रोज़ 00:00 UTC पर रन होगा
   workflow_dispatch: {}
 
 permissions:
@@ -11,33 +11,33 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: true
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytrends
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytrends
 
-      - name: Ensure templates folder exists
-        run: |
-          if [ ! -f templates/index_template.html ]; then
-            echo "Template missing — creating default template to avoid failure."
-            mkdir -p templates
-            cat > templates/index_template.html <<'EOF'
+    - name: Ensure templates folder exists
+      run: |
+        if [ ! -f templates/index_template.html ]; then
+          echo "Template missing — creating default template."
+          mkdir -p templates
+          cat > templates/index_template.html <<'EOF'
 <!doctype html>
 <html lang="hi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Daily Trending Topics</title>
 </head>
 <body>
@@ -46,26 +46,27 @@ jobs:
 </body>
 </html>
 EOF
-          else
-            echo "Template exists."
-          fi
+        else
+          echo "Template exists."
+        fi
 
-      - name: Generate index.html
-        env:
-          TRENDS_REGION: india
-          CANONICAL_URL: ${{ secrets.CANONICAL_URL }}
-          MAX_TRENDS: '12'
-        run: |
-          python generate_index.py
+    - name: Generate index.html
+      env:
+        TRENDS_REGION: india
+        CANONICAL_URL: ${{ secrets.CANONICAL_URL }}
+        MAX_TRENDS: '12'
+      run: |
+        python generate_index.py
 
-      - name: Commit and push changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html sitemap.xml || true
-          if git diff --quiet --cached; then
-            echo "No changes to commit"
-          else
-            git commit -m "Daily: update trending topics — $(date -u +%Y-%m-%d)" || echo "commit failed"
-            git push origin HEAD:${{ github.ref_name }} || echo "push failed"
-          fi
+    - name: Commit and push changes
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add index.html sitemap.xml || true
+
+        if git diff --quiet --cached; then
+          echo "No changes to commit."
+        else
+          git commit -m "Daily auto-update: $(date -u +'%Y-%m-%d')"
+          git push origin HEAD:${{ github.ref_name }} || echo "Push failed"
+        fi
