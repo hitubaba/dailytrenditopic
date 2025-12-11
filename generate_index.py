@@ -2,7 +2,7 @@
 import os, sys, html, json
 from datetime import datetime
 
-MAX_ITEMS = int(os.environ.get("MAX_TRENDS", "12"))
+MAX_ITEMS = int(os.environ.get("MAX_TRENDS", "20"))
 REGION = os.environ.get("TRENDS_REGION", "india")  
 TEMPLATE = "templates/index_template.html"
 OUTPUT = "index.html"
