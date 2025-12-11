@@ -63,14 +63,20 @@ header{
 
   <!-- Structured data: WebSite + ItemList (top trends) -->
   <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"WebSite",
-    "name":"dailytrenditopic",
-    "url":"{{CANONICAL_URL}}",
-    "potentialAction":{"@type":"SearchAction","target":"{{CANONICAL_URL}}?q={search_term_string}","query-input":"required name=search_term_string"}
-  }
-  </script>
+{
+ "@context":"https://schema.org",
+ "@type":"NewsMediaOrganization",
+ "name":"Daily Trend India",
+ "url":"{{CANONICAL_URL}}",
+ "logo":"https://hitubaba.github.io/dailytrenditopic/logo.png",
+ "description":"Daily updated trending searches in India.",
+ "sameAs":[
+   "https://www.google.com",
+   "https://news.google.com"
+ ]
+}
+</script>
+
 
   <!-- ItemList will be generated server-side and injected as JSON -->
   <script id="trend-json" type="application/ld+json">
